@@ -4,7 +4,7 @@
 		<title>Palma Car Driving</title>
 		<script src="canvas.js" type="text/javascript"></script>
 	</head>
-	<body>
+	<body style="background-color: #222;">
 		<canvas id="cvs" width="720px" height="480px" style="width: 720px; height: 480px; border: solid black 2px;">
 			<h1>Your browser does not support the &lt;canvas&gt; HTML tag!</h1>
 		</canvas>
@@ -13,16 +13,16 @@
 		let cvs = ctx.cvs;
 		let width = 720;
 		let height = 480;
-		
+
 		ctx.ctx.webkitImageSmoothingEnabled = false;
 		ctx.ctx.mozImageSmoothingEnabled = false;
 		ctx.ctx.imageSmoothingEnabled = false;
-		
+
 		let storage = window.localStorage;
 		if (!storage) {
 			alert("DATA CANNOT BE SAVED!");
 		}
-		
+
 		function save() {
 			if (storage) {
 				storage.player = JSON.stringify(player);
@@ -31,7 +31,7 @@
 				storage.coins = JSON.stringify(coins);
 			}
 		}
-		
+
 		function load() {
 			if (storage) {
 				if (storage.player) {
@@ -51,10 +51,52 @@
 			}
 		}
 		
+		let paused = 1;
+
 		function randint(mi, ma) {
 			mi = Math.ceil(mi);
 			ma = Math.floor(ma);
 			return Math.floor(Math.random() * (ma - mi + 1)) + mi;
+		}
+		
+		function togglePause() {
+			if (paused) {
+				paused = 0;
+			} else {
+				paused = 1;
+			}
+		}
+		
+		function reset() {
+			paused = 1;
+			storage.clear();
+			setup();
+			save();
+		}
+		
+		let prices = {1: 80, 2: 20};
+		
+		function shop() {
+			paused = 2;
+		}
+		
+		function buy(i) {
+			switch (i) {
+				case 1:
+					if (player.score >= prices[1]) {
+						player.score -= prices[1];
+						player.speed.side += 0.1;
+						save();
+					}
+					break;
+				case 2:
+					if (player.score >= prices[2]) {
+						player.score -= prices[2];
+						setCarColor(carColors[player.color]);
+						save();
+					}
+					break;
+			}
 		}
 		
 		let player = {
@@ -70,32 +112,16 @@
 		playerImg = new Image();
 		playerImg.src = "res/car_" + player.color + ".png";
 		
+		let carColors = {yellow: "green", green: "blue", blue: "red", red: "yellow"};
+
 		function reloadCarColor() {
 			playerImg.src = "res/car_" + player.color + ".png";
 		}
-		
+
 		function setCarColor(c) {
 			player.color = c;
 			reloadCarColor();
 		}
-		
-		document.addEventListener("keydown", (e) => {
-			if (e.keyCode == 37) {
-				player.keys.left = true;
-			}
-			if (e.keyCode == 39) {
-				player.keys.right = true;
-			}
-		});
-		
-		document.addEventListener("keyup", (e) => {
-			switch (e.keyCode) {
-				case 37:
-					player.keys.left = false;
-				case 39:
-					player.keys.right = false;
-			}
-		});
 		
 		let roadImg = new Image();
 		roadImg.src = "res/road.png";
@@ -111,14 +137,14 @@
 			w: 480,
 			h: 480
 		};
-		
+
 		let coinImg = new Image();
 		coinImg.src = "res/coin.png";
 		let coinSize = {w: 32, h: 32};
 		let coins = [
 			{x: randint(120, width - 120 - coinSize.h), y: -32}
 		];
-		
+
 		let grassImg = new Image();
 		grassImg.src = "res/grass-panel.png";
 		let grassSize = {w: 120, h: 480};
@@ -130,13 +156,102 @@
 			{x: 0, y: -480, w: 120, h: 480},
 			{x: 600, y: -480, w: 120, h: 480}
 		];
-		
+
 		let treeImg = [new Image(), new Image()];
 		treeImg[0].src = "res/tree1.png";
 		treeImg[1].src = "res/tree2.png";
 		let treeSize = {w: 32, h: 32};
 		let trees = [{x: 10, y: 10, img: 1}];
 		
+		document.addEventListener("keydown", (e) => {
+			if (e.keyCode == 37) {
+				player.keys.left = true;
+			}
+			if (e.keyCode == 39) {
+				player.keys.right = true;
+			}
+			if (e.keyCode == 27) {
+				if (paused == 0 || paused == 1)
+					togglePause();
+				if (paused == 2)
+					paused = 1;
+			}
+			if (e.keyCode == 88) {
+				if (paused == 1)
+					reset();
+			}
+			if (e.keyCode == 83) {
+				if (paused == 1)
+					shop();
+			}
+			if (e.keyCode == 49) {
+				if (paused == 2)
+					buy(1);
+			}
+			if (e.keyCode == 50) {
+				if (paused == 2)
+					buy(2);
+			}
+			if (e.keyCode >= 51 && e.keyCode <= 52) {
+				if (paused == 2)
+					buySong(e.keyCode - 50);
+			}
+		});
+
+		document.addEventListener("keyup", (e) => {
+			switch (e.keyCode) {
+				case 37:
+					player.keys.left = false;
+				case 39:
+					player.keys.right = false;
+			}
+		});
+
+		function setup() {
+			roadImg = new Image();
+			roadImg.src = "res/road.png";
+			road1 = {
+				x: 120,
+				y: 0,
+				w: 480,
+				h: 480
+			};
+			road2 = {
+				x: 120,
+				y: -480,
+				w: 480,
+				h: 480
+			};
+
+			coinImg = new Image();
+			coinImg.src = "res/coin.png";
+			coinSize = {w: 32, h: 32};
+			coins = [
+				{x: randint(120, width - 120 - coinSize.h), y: -32}
+			];
+
+			grassImg = new Image();
+			grassImg.src = "res/grass-panel.png";
+			grassSize = {w: 120, h: 480};
+			grass1 = [
+				{x: 0, y: 0, w: 120, h: 480},
+				{x: 600, y: 0, w: 120, h: 480}
+			];
+			grass2 = [
+				{x: 0, y: -480, w: 120, h: 480},
+				{x: 600, y: -480, w: 120, h: 480}
+			];
+
+			treeImg = [new Image(), new Image()];
+			treeImg[0].src = "res/tree1.png";
+			treeImg[1].src = "res/tree2.png";
+			treeSize = {w: 32, h: 32};
+			trees = [{x: 10, y: 10, img: 1}];
+			
+			player.x = width / 2 - 32;
+			player.y = height - 100;
+		}
+
 		function checkPlayerCoin(c, i) {
 			if (c.x >= player.x && c.x <= player.x + player.w && c.y >= player.y && c.y <= player.y + player.h) {
 				coins.pop(i);
@@ -145,11 +260,12 @@
 			}
 			return false;
 		}
-		
+
 		load();
 		reloadCarColor();
-		
+
 		function draw() {
+			ctx.style("black");
 			for (let grass of grass1) {
 				ctx.drawImage(grass.x, grass.y, grassSize.w, grassSize.h, grassImg);
 			}
@@ -167,68 +283,86 @@
 				ctx.drawImage(coin.x, coin.y, coinSize.w, coinSize.h, coinImg);
 			}
 			ctx.drawImage(player.x, player.y, player.w, player.h, playerImg);
+			if (paused == 1) {
+				ctx.style("rgba(255, 255, 255, 0.4)");
+				ctx.drawRect(0, 0, width, height);
+				ctx.style("black");
+				ctx.drawText(width / 2 - 65, height / 2 + 20, 40, "Paused");
+				ctx.drawText(width / 2 - 94, height / 2 + 60, 20, "Press ESC to resume");
+				ctx.drawText(width / 2 - 70, height / 2 + 90, 20, "Press X to reset");
+				ctx.drawText(width / 2 - 70, height / 2 + 120, 20, "Press S to shop");
+			} else if (paused == 2) {
+				ctx.style("rgba(255, 255, 255, 0.4)");
+				ctx.drawRect(0, 0, width, height);
+				ctx.style("black");
+				ctx.drawText(width / 2 - 50, 55, 50, "SHOP");
+				ctx.drawText(40, 200, 25, "Press 1 to upgrade side movement (" + prices[1] + "$)");
+				ctx.drawText(40, 240, 25, "Press 2 to switch from " + player.color + " to " + carColors[player.color] + " color (" + prices[2] + "$)");
+			}
 			ctx.reload();
 		}
-		
+
 		function update() {
-			if (player.x < width - 120 - player.w && player.keys.right) {
-				player.x += player.speed.side;
-			}
-			if (player.x > 120 && player.keys.left) {
-				player.x -= player.speed.side;
-			}
-			let newCoin = false;
-			for (let i = 0; i < coins.length; i++) {
-				coins[i].y += player.speed.forward;
-				if (checkPlayerCoin(coins[i], i)) {
-					i -= 1;
-					newCoin = true;
+			if (!paused) {
+				if (player.x < width - 120 - player.w && player.keys.right) {
+					player.x += player.speed.side;
 				}
-				if (!newCoin) {
-					if (coins[i].y >= 480) {
-						coins.pop(i);
+				if (player.x > 120 && player.keys.left) {
+					player.x -= player.speed.side;
+				}
+				let newCoin = false;
+				for (let i = 0; i < coins.length; i++) {
+					coins[i].y += player.speed.forward;
+					if (checkPlayerCoin(coins[i], i)) {
 						i -= 1;
 						newCoin = true;
 					}
+					if (!newCoin) {
+						if (coins[i].y >= 480) {
+							coins.pop(i);
+							i -= 1;
+							newCoin = true;
+						}
+					}
 				}
-			}
-			if (newCoin) {
-				coins.push({x: randint(120, width - 120 - coinSize.h), y: -32});
-			}
-			road1.y += player.speed.forward;
-			road2.y += player.speed.forward;
-			if (road1.y >= 480) {
-				road1.y = -480;
-			}
-			if (road2.y >= 480) {
-				road2.y = -480;
-			}
-			grass1[0].y += player.speed.forward;
-			grass1[1].y += player.speed.forward;
-			grass2[0].y += player.speed.forward;
-			grass2[1].y += player.speed.forward;
-			if (grass1[0].y >= 480) {
-				grass1[0].y = -480;
-				grass1[1].y = -480;
-			}
-			if (grass2[0].y >= 480) {
-				grass2[0].y = -480;
-				grass2[1].y = -480;
-			}
-			let newTree = 0;
-			for (let i = 0; i < trees.length; i++) {
-				trees[i].y += player.speed.forward;
-				if (trees[i].y >= 480) {
-					newTree++;
-					trees.pop(i);
-					i--;
+				if (newCoin) {
+					coins.push({x: randint(120, width - 120 - coinSize.h), y: -32});
 				}
-			}
-			for (let i = 0; i < newTree; i++) {
-				if (randint(0, 1) == 0) {
-					trees.push({x: randint(0, 120 - treeSize.w), y: -treeSize.h, img: randint(0, 1)});
-				} else {
-					trees.push({x: randint(600, width - treeSize.w), y: -treeSize.h, img: randint(0, 1)});
+				road1.y += player.speed.forward;
+				road2.y += player.speed.forward;
+				if (road1.y >= 480) {
+					road1.y = -480;
+				}
+				if (road2.y >= 480) {
+					road2.y = -480;
+				}
+				grass1[0].y += player.speed.forward;
+				grass1[1].y += player.speed.forward;
+				grass2[0].y += player.speed.forward;
+				grass2[1].y += player.speed.forward;
+				if (grass1[0].y >= 480) {
+					grass1[0].y = -480;
+					grass1[1].y = -480;
+				}
+				if (grass2[0].y >= 480) {
+					grass2[0].y = -480;
+					grass2[1].y = -480;
+				}
+				let newTree = 0;
+				for (let i = 0; i < trees.length; i++) {
+					trees[i].y += player.speed.forward;
+					if (trees[i].y >= 480) {
+						newTree++;
+						trees.pop(i);
+						i--;
+					}
+				}
+				for (let i = 0; i < newTree; i++) {
+					if (randint(0, 1) == 0) {
+						trees.push({x: randint(0, 120 - treeSize.w), y: -treeSize.h, img: randint(0, 1)});
+					} else {
+						trees.push({x: randint(600, width - treeSize.w), y: -treeSize.h, img: randint(0, 1)});
+					}
 				}
 			}
 			draw();
